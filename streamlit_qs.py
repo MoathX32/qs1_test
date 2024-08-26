@@ -104,10 +104,10 @@ def get_prompt_template(context, num_questions, question_type, is_english):
 def generate_questions(context, num_questions, question_type, is_english):
     prompt = get_prompt_template(context, num_questions, question_type, is_english)
     try:
+        # Assuming the generate_text method only requires prompt and temperature
         response = genai.generate_text(
             prompt=prompt,
-            temperature=0.7,
-            max_tokens=8000
+            temperature=0.7
         )
         response_text = response['text'].strip()  # Assuming the response is in a dictionary with 'text'
         logging.debug(f"Raw response from model: {response_text}")
