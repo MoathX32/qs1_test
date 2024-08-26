@@ -12,27 +12,15 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Configure the API key
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
-# Initialize the model configuration
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 0.9,
-    "top_k": 50,
-    "max_output_tokens": 8000,
-}
-system_instruction = "You are a helpful document answering assistant."
-
-# Initialize the model in session state
-if "model" not in st.session_state:
-    st.session_state.model = genai.GenerativeModel(
-        model_name="gemini-1.5-pro-latest",
-        generation_config=generation_config,
-        system_instruction=system_instruction
-    )
 
 # Define the path to the input folder
 DATA_FOLDER_PATH = "./Data"
+
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Function to extract and chunk PDF text
 def get_single_pdf_chunks(pdf, text_splitter):
@@ -116,8 +104,12 @@ def get_prompt_template(context, num_questions, question_type, is_english):
 def generate_questions(context, num_questions, question_type, is_english):
     prompt = get_prompt_template(context, num_questions, question_type, is_english)
     try:
-        response = st.session_state.model.start_chat(history=[]).send_message(prompt)
-        response_text = response.text.strip()
+        response = genai.generate_text(
+            prompt=prompt,
+            temperature=0.7,
+            max_tokens=8000
+        )
+        response_text = response['text'].strip()  # Assuming the response is in a dictionary with 'text'
         logging.debug(f"Raw response from model: {response_text}")
 
         if response_text:
