@@ -1,26 +1,84 @@
-import os
+import sqlite3
 import streamlit as st
-import google.generativeai as genai
+import os
 import json
-import io
 import random
+import io
 import logging
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from PyPDF2 import PdfReader
-from langdetect import detect
+import re
 from dotenv import load_dotenv
+from PyPDF2 import PdfReader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langdetect import detect
+import google.generativeai as genai
 
-# Load environment variables
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Load environment variables and configure the model
 load_dotenv()
-
-# Configure the API key
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Define the path to the input folder
-DATA_FOLDER_PATH = "./Data"
+generation_config = {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 50,
+    "max_output_tokens": 8000,
+}
+system_instruction = "You are a helpful document answering assistant."
+model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest", generation_config=generation_config, system_instruction=system_instruction)
 
-# Initialize logging
-logging.basicConfig(level=logging.DEBUG)
+# Initialize the databases
+def initialize_database():
+    conn = sqlite3.connect('questions.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS questions (
+            id INTEGER PRIMARY KEY,
+            lesson_name TEXT,
+            question TEXT UNIQUE,
+            question_type TEXT,
+            options TEXT,
+            correct_answer TEXT,
+            rating TEXT DEFAULT 'Unrated'
+        )
+    ''')
+    conn.commit()
+    return conn, cursor
+
+conn, cursor = initialize_database()
+
+# Function to insert data into the database
+def save_new_question(lesson_name, question, question_type, options, correct_answer):
+    cursor.execute(
+        "INSERT INTO questions (lesson_name, question, question_type, options, correct_answer) VALUES (?, ?, ?, ?, ?)",
+        (lesson_name, question, question_type, options, correct_answer)
+    )
+    conn.commit()
+
+# Function to query data from the database
+def get_questions():
+    cursor.execute("SELECT * FROM questions")
+    rows = cursor.fetchall()
+    return rows
+
+# Function to rate a question as "Good" or "Bad"
+def rate_question(question_id, rating):
+    cursor.execute(
+        "UPDATE questions SET rating = ? WHERE id = ?",
+        (rating, question_id)
+    )
+    conn.commit()
+
+# Function to download the database
+def download_database():
+    with open('questions.db', 'rb') as f:
+        st.download_button(
+            label="Download Database",
+            data=f,
+            file_name="questions.db",
+            mime="application/octet-stream"
+        )
 
 # Function to extract and chunk PDF text
 def get_single_pdf_chunks(pdf, text_splitter):
@@ -64,10 +122,10 @@ def clean_json_response(response_text):
                 return response_json
             else:
                 logging.error("No JSON object or array found in response")
-                raise ValueError("No JSON object or array found in response")
+                return None
         except (ValueError, json.JSONDecodeError) as e:
             logging.error(f"Response is not a valid JSON: {str(e)}")
-            raise ValueError(f"Response is not a valid JSON: {str(e)}")
+            return None
 
 # Function to generate a common prompt template
 def get_prompt_template(context, num_questions, question_type, is_english):
@@ -77,14 +135,14 @@ def get_prompt_template(context, num_questions, question_type, is_english):
 
     elif question_type == "TF":
         prompt_type = "true/false questions"
-        options_format = "Create a set of True/False questions. No options are needed, but the correct answer is needed."
+        options_format = "Create a set of True/False questions. No options is needed, but the correct answer is needed."
         
     elif question_type == "WRITTEN":
         prompt_type = "open-ended written questions"
         options_format = "Create open-ended written questions that require a descriptive answer. No options are needed, but the correct answer is needed."
 
     prompt_template = f"""
-            You are an AI assistant tasked with generating {num_questions} {prompt_type} related to the presented study material's grammar and comprehension from the given context. Don't get out of the context.
+            You are an AI assistant tasked with generating {num_questions} {prompt_type} related to presented study material grammar and comprehension from the given context. Do not get out of the context.
             Ensure the following guidelines while generating the questions:
             1. Vary the types of questions between open and closed, and between direct and reflective questions to ensure a comprehensive assessment.
             2. Focus on deep understanding by asking questions that measure the students' grasp of key concepts, requiring explanations or examples where appropriate.
@@ -92,7 +150,7 @@ def get_prompt_template(context, num_questions, question_type, is_english):
             4. Encourage critical thinking by including questions that ask 'why' or explore potential consequences.
             5. Include questions of varying difficulty levels to accommodate students with different abilities, ensuring some questions are answerable by all.
             6. Ensure clarity in the wording of questions to avoid ambiguity and confusion.
-            7. The language of the question must be the same as the language of the content presented in the lessons, whether in a MCQ, true/false, or written question.
+            7. The language of the question must be the same as the language of the content presented in the lessons, whether in MCQs, true/false, or written questions.
             Ensure the output is in JSON format with fields 'question', 'options', and 'correct_answer'.
             {options_format}
             Context: {context}\n
@@ -101,49 +159,57 @@ def get_prompt_template(context, num_questions, question_type, is_english):
     return prompt_template
 
 # Function to generate questions using the model
-def generate_questions(context, num_questions, question_type, is_english):
+def generate_questions(context, num_questions, question_type, model, is_english):
     prompt = get_prompt_template(context, num_questions, question_type, is_english)
     try:
-        response = genai.generate_text(
-            prompt=prompt,
-            temperature=0.7
-        )
-        # Inspect the Completion object to understand its structure
-        st.write("Response Object Attributes:", dir(response))
-        st.write("Response Object:", response)
-
-        # Try to access the text attribute or method based on the response structure
-        # Example (adjust based on actual structure):
-        response_text = response.text.strip()  # This is just an example, adjust accordingly
+        response = model.start_chat(history=[]).send_message(prompt)
+        response_text = response.text.strip()
         logging.debug(f"Raw response from model: {response_text}")
 
         if response_text:
             return clean_json_response(response_text)
         else:
             logging.error("Empty response from the model")
-            raise ValueError("Empty response from the model")
+            return None
     except Exception as e:
         logging.error(f"Error: {str(e)}")
-        raise ValueError(str(e))
+        return None
 
-# Streamlit UI Components
-st.title("Automated Question Generation System")
+# Path to the folder containing PDF files
+DATA_FOLDER_PATH = "./Data"
 
-# Select lesson files
+# Streamlit app UI
+st.title("Question Generation and Management App")
+
+# Automatically process all files in the Data folder
 files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
-selected_files = st.multiselect("Select lesson files", files)
+st.write(f"Processing {len(files)} files found in the folder '{DATA_FOLDER_PATH}'.")
 
-# Select question type
-question_type = st.selectbox("Select question type", ["MCQ", "TF", "WRITTEN"])
+# Set up a dictionary to hold percentages for each lesson and question type
+lesson_percentage_distribution = {}
 
-# Specify the number of questions
-num_questions = st.number_input("Number of questions", min_value=1, max_value=20, value=5)
+# Loop through each file and let the user set percentages for each question type
+for file in files:
+    st.subheader(f"Set percentages for {file}")
+    lesson_name = os.path.splitext(file)[0]
+    lesson_percentage_distribution[lesson_name] = {}
+    
+    for question_type in ["MCQ", "TF", "WRITTEN"]:
+        lesson_percentage_distribution[lesson_name][question_type] = st.slider(
+            f"Percentage for {question_type} in {file}",
+            0, 100, 33
+        )
 
-# Generate questions button
+# Number of questions
+num_questions = st.number_input("Enter the total number of questions per lesson", min_value=1, max_value=100, value=10)
+
+# Button to generate questions
 if st.button("Generate Questions"):
-    if selected_files:
+    if not any(lesson_percentage_distribution.values()):
+        st.error("Please set at least one percentage distribution for each lesson.")
+    else:
         results = {}
-        for pdf_filename in selected_files:
+        for pdf_filename in files:
             lesson_name = os.path.splitext(pdf_filename)[0]
             pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
             
@@ -154,18 +220,40 @@ if st.button("Generate Questions"):
                 
                 is_english = detect(context[:500]) == 'en'
                 
-                generated_questions = generate_questions(context, num_questions, question_type, is_english)
-                results[pdf_filename] = generated_questions
+                for question_type, percentage in lesson_percentage_distribution[lesson_name].items():
+                    num_type_questions = int((percentage / 100) * num_questions)
+                    if num_type_questions > 0:
+                        generated_questions = generate_questions(context, num_type_questions, question_type, model, is_english)
+                        
+                        if generated_questions:
+                            save_new_question(lesson_name, generated_questions, question_type, context, "")
+                            results.setdefault(pdf_filename, []).extend(generated_questions)
+                        else:
+                            st.error(f"Failed to generate {question_type} questions for {pdf_filename}.")
+        
+        st.success("Questions generated successfully.")
+        st.write(results)
 
-        st.session_state.generated_questions = results
-        st.success("Questions generated successfully!")
-    else:
-        st.warning("Please select at least one lesson file.")
+# Display the questions in the database
+st.subheader("Current Questions in the Database")
+questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type
+, 'Options', 'Correct Answer', 'Rating'])
+st.dataframe(questions_df)
 
-# Display generated questions if available
-if "generated_questions" in st.session_state:
-    st.subheader("Generated Questions")
-    for lesson, questions in st.session_state.generated_questions.items():
-        st.write(f"Lesson: {lesson}")
-        for question in questions:
-            st.write(question)
+# Rate the questions
+if not questions_df.empty:
+    st.subheader("Rate Questions")
+    question_id = st.selectbox("Select Question ID to Rate", questions_df['ID'])
+    rating = st.radio("Rating", ["Good", "Bad"])
+    
+    if st.button("Submit Rating"):
+        rate_question(question_id, rating)
+        st.success("Rating submitted successfully!")
+        questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])  # Refresh the data
+        st.dataframe(questions_df)
+
+# Download the database
+download_database()
+
+# Close the database connection at the end
+conn.close()
