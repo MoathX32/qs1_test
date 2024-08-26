@@ -108,8 +108,13 @@ def generate_questions(context, num_questions, question_type, is_english):
             prompt=prompt,
             temperature=0.7
         )
-        # Access the generated text from the Completion object
-        response_text = response.generations[0].text.strip()
+        # Inspect the Completion object to understand its structure
+        st.write("Response Object Attributes:", dir(response))
+        st.write("Response Object:", response)
+
+        # Try to access the text attribute or method based on the response structure
+        # Example (adjust based on actual structure):
+        response_text = response.text.strip()  # This is just an example, adjust accordingly
         logging.debug(f"Raw response from model: {response_text}")
 
         if response_text:
