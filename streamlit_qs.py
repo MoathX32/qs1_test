@@ -236,8 +236,7 @@ if st.button("Generate Questions"):
 
 # Display the questions in the database
 st.subheader("Current Questions in the Database")
-questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type
-, 'Options', 'Correct Answer', 'Rating'])
+questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])
 st.dataframe(questions_df)
 
 # Rate the questions
