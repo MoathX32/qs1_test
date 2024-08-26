@@ -19,15 +19,6 @@ logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 0.9,
-    "top_k": 50,
-    "max_output_tokens": 8000,
-}
-system_instruction = "You are a helpful document answering assistant."
-model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest", generation_config=generation_config, system_instruction=system_instruction)
-
 # Initialize the databases
 def initialize_database():
     conn = sqlite3.connect('questions.db')
@@ -159,11 +150,11 @@ def get_prompt_template(context, num_questions, question_type, is_english):
     return prompt_template
 
 # Function to generate questions using the model
-def generate_questions(context, num_questions, question_type, model, is_english):
-    prompt = get_prompt_template(context, num_questions, question_type, is_english)
+def generate_questions(context, num_questions, question_type, model):
+    prompt = get_prompt_template(context, num_questions, question_type, detect(context[:500]) == 'en')
     try:
-        response = model.start_chat(history=[]).send_message(prompt)
-        response_text = response.text.strip()
+        response = genai.generate_text(prompt=prompt)
+        response_text = response['candidates'][0]['output'].strip()
         logging.debug(f"Raw response from model: {response_text}")
 
         if response_text:
@@ -218,12 +209,10 @@ if st.button("Generate Questions"):
                 text_chunks = get_all_pdfs_chunks([pdf_content])
                 context = " ".join(random.sample(text_chunks, min(num_questions, len(text_chunks))))
                 
-                is_english = detect(context[:500]) == 'en'
-                
                 for question_type, percentage in lesson_percentage_distribution[lesson_name].items():
                     num_type_questions = int((percentage / 100) * num_questions)
                     if num_type_questions > 0:
-                        generated_questions = generate_questions(context, num_type_questions, question_type, model, is_english)
+                        generated_questions = generate_questions(context, num_type_questions, question_type, model)
                         
                         if generated_questions:
                             save_new_question(lesson_name, generated_questions, question_type, context, "")
