@@ -124,35 +124,38 @@ def generate_questions(context, num_questions, question_type, is_english):
 # Streamlit UI Components
 st.title("Automated Question Generation System")
 
-# Start processing PDFs and generating questions
-if st.button("Generate Questions from PDFs"):
-    question_counts = {"Lesson1": 5, "Lesson2": 5}  # Example question counts
-    question_types = {"Lesson1": "MCQ", "Lesson2": "TF"}  # Example question types
-    
-    files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
-    results = {}
+# Select lesson files
+files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
+selected_files = st.multiselect("Select lesson files", files)
 
-    for pdf_filename in files:
-        lesson_name = os.path.splitext(pdf_filename)[0]
-        if lesson_name not in question_counts:
-            continue
+# Select question type
+question_type = st.selectbox("Select question type", ["MCQ", "TF", "WRITTEN"])
 
-        count = question_counts[lesson_name]
-        question_type = question_types.get(lesson_name, "MCQ")
-        pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
-        
-        with open(pdf_path, "rb") as pdf_file:
-            pdf_content = io.BytesIO(pdf_file.read())
-            text_chunks = get_all_pdfs_chunks([pdf_content])
-            context = " ".join(random.sample(text_chunks, min(count, len(text_chunks))))
+# Specify the number of questions
+num_questions = st.number_input("Number of questions", min_value=1, max_value=20, value=5)
+
+# Generate questions button
+if st.button("Generate Questions"):
+    if selected_files:
+        results = {}
+        for pdf_filename in selected_files:
+            lesson_name = os.path.splitext(pdf_filename)[0]
+            pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
             
-            is_english = detect(context[:500]) == 'en'
-            
-            generated_questions = generate_questions(context, count, question_type, is_english)
-            results[pdf_filename] = generated_questions
+            with open(pdf_path, "rb") as pdf_file:
+                pdf_content = io.BytesIO(pdf_file.read())
+                text_chunks = get_all_pdfs_chunks([pdf_content])
+                context = " ".join(random.sample(text_chunks, min(num_questions, len(text_chunks))))
+                
+                is_english = detect(context[:500]) == 'en'
+                
+                generated_questions = generate_questions(context, num_questions, question_type, is_english)
+                results[pdf_filename] = generated_questions
 
-    st.session_state.generated_questions = results
-    st.success("Questions generated successfully!")
+        st.session_state.generated_questions = results
+        st.success("Questions generated successfully!")
+    else:
+        st.warning("Please select at least one lesson file.")
 
 # Display generated questions if available
 if "generated_questions" in st.session_state:
