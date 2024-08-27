@@ -227,12 +227,12 @@ if st.button("Generate Questions"):
         question_type = max(question_types, key=question_types.get)
         pdf_path = os.path.join(pdf_directory, pdf_filename)
         
-        with open(pdf_path, "rb") as pdf_file:
+        with open(pdf_path, "rb") as pdf_file):
             pdf_content = io.BytesIO(pdf_file.read())
             text_chunks = get_all_pdfs_chunks([pdf_content])
             context = " ".join(random.sample(text_chunks, min(count, len(text_chunks))))
             
-                        is_english = detect(context[:500]) == 'en'
+            is_english = detect(context[:500]) == 'en'
             
             generated_questions = generate_questions(context, count, question_type, model, is_english)
             
@@ -256,4 +256,3 @@ if st.button("Generate Questions"):
                     st.write(f"- Option {j + 1}: {option}")
             st.write(f"**Correct Answer:** {question['correct_answer']}")
             st.write("---")
-
