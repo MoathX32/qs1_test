@@ -1,7 +1,8 @@
-streamlit==1.23.1
-google-generativeai==0.1.0  # Ensure this matches the actual version you are using
+streamlit==1.24.0
 pandas==1.5.3
-PyPDF2==3.0.1
-langchain==0.0.208  # or the latest compatible version
-python-dotenv==1.0.0
 langdetect==1.0.9
+pillow==9.3.0
+PyPDF2==3.0.1
+google-generativeai==0.1.0
+python-dotenv==1.0.0
+sqlite3==3.35.5  # Note: sqlite3 is part of the standard library, so this line is typically unnecessary unless specifying a version is crucial.
