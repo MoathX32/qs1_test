@@ -1,7 +1,7 @@
 streamlit==1.24.0
 pandas==1.5.3
 langdetect==1.0.9
-pillow==9.3.0
+pillow==8.4.0  # Downgrade to avoid source build issues
 PyPDF2==3.0.1
 google-generativeai==0.1.0
 python-dotenv==1.0.0
