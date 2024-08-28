@@ -228,7 +228,7 @@ if selected_files:
         for question_type in ["MCQ", "TF", "WRITTEN"]:
             lesson_question_count[lesson_name][question_type] = st.number_input(
                 f"Number of {question_type} questions for {file}",
-                min_value=0, max_value=100, value=10
+                min_value=0, max_value=10, value=5  # Testing with a small number first
             )
 
     # Step 3: Generate Questions
