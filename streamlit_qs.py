@@ -8,7 +8,7 @@ import logging
 import re
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 from langdetect import detect
@@ -76,11 +76,6 @@ def download_database():
 
 # Function to extract and chunk PDF text
 def get_all_pdfs_chunks(pdf_docs):
-    text_splitter = CharacterTextSplitter(
-        chunk_size=2500,
-        chunk_overlap=500
-    )
-
     all_chunks = []
     for pdf in pdf_docs:
         pdf_chunks = get_single_pdf_chunks(pdf, text_splitter)
@@ -90,7 +85,6 @@ def get_all_pdfs_chunks(pdf_docs):
     
     return all_chunks
 
-# Function to extract and chunk PDF text
 def get_single_pdf_chunks(pdf, text_splitter):
     pdf_reader = PdfReader(pdf)
     pdf_chunks = []
