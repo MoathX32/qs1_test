@@ -57,6 +57,21 @@ conn, cursor = initialize_database()
 
 # Function to insert data into the database
 def save_new_question(lesson_name, questions, question_type, context, correct_answer):
+    # Debugging: Check the type of questions
+    logging.debug(f"Type of questions: {type(questions)} | Content: {questions}")
+    
+    if isinstance(questions, str):
+        try:
+            # Attempt to parse the string as JSON
+            questions = json.loads(questions)
+        except json.JSONDecodeError:
+            logging.error("Failed to decode questions from JSON")
+            return
+    
+    if not isinstance(questions, list):
+        logging.error("Expected a list of questions, but got something else.")
+        return
+
     for question in questions:
         options = json.dumps(question.get('options', []), ensure_ascii=False)
         question_text = question.get('question', '')
@@ -69,6 +84,7 @@ def save_new_question(lesson_name, questions, question_type, context, correct_an
         except sqlite3.IntegrityError:
             continue
     conn.commit()
+
 
 # Function to query data from the database
 def get_questions():
