@@ -33,7 +33,7 @@ generation_config = {
     "max_output_tokens": 8000,
 }
 system_instruction = "You are a helpful document answering assistant. You care about user and user experience. You always make sure to fulfill user requests."
-model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest", generation_config=generation_config, system_instruction=system_instruction)
+model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest", generation_config=generation_config, system_instruction=system_instruction)
 
 # Initialize the databases
 def initialize_database():
