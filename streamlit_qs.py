@@ -9,8 +9,6 @@ import re
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-
 from langdetect import detect
 import google.generativeai as genai
 import pandas as pd
@@ -19,7 +17,6 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=2500,
     chunk_overlap=500
 )
-
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -154,7 +151,17 @@ def get_prompt_template(context, num_questions, question_type, is_english):
 
 # Function to generate questions using the model
 def generate_questions(context, num_questions, question_type):
-    prompt = get_prompt_template(context, num_questions, question_type, detect(context[:500]) == 'en')
+    # Detect the language of the context
+    language = detect(context[:500])
+    logging.debug(f"Detected language: {language}")
+
+    # Check if the detected language is supported
+    supported_languages = ['en']  # Assuming 'en' (English) is supported
+    if language not in supported_languages:
+        logging.error(f"Error: The requested language '{language}' is not supported by models/text-bison-001")
+        return None
+
+    prompt = get_prompt_template(context, num_questions, question_type, language == 'en')
     try:
         response = genai.generate_text(prompt=prompt)
         response_text = response['candidates'][0]['output'].strip()
