@@ -1,9 +1,9 @@
-streamlit
-google-generativeai
-pandas
-numpy
-PyPDF2
+streamlit==1.38.0
+google-generativeai==0.7.2
+pandas==2.2.2
+numpy==1.26.4
+PyPDF2==3.0.1
 langchain==0.0.208
-python-dotenv
-langdetect
+python-dotenv==1.0.1
+langdetect==1.0.9
 pydantic==1.10.2
