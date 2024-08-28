@@ -227,7 +227,7 @@ if st.button("Generate Questions"):
         question_type = max(question_types, key=question_types.get)
         pdf_path = os.path.join(pdf_directory, pdf_filename)
         
-        with open(pdf_path, "rb") as pdf_file):
+        with open(pdf_path, "rb") as pdf_file :
             pdf_content = io.BytesIO(pdf_file.read())
             text_chunks = get_all_pdfs_chunks([pdf_content])
             context = " ".join(random.sample(text_chunks, min(count, len(text_chunks))))
