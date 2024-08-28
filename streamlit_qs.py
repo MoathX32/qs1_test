@@ -79,7 +79,7 @@ def save_new_question(lesson_name, questions, question_type, context, correct_an
     for question in questions:
         options = json.dumps(question.get('options', []), ensure_ascii=False)
         question_text = question.get('question', '')
-        correct_answer = question.get('correct_answer', None)
+        correct_answer = question.get('correct_answer', None) or "Not Provided"
         try:
             cursor.execute(
                 "INSERT INTO questions (lesson_name, question, question_type, options, correct_answer) VALUES (?, ?, ?, ?, ?)",
@@ -169,7 +169,7 @@ def get_prompt_template(context, num_questions, question_type):
         
     elif question_type == "WRITTEN":
         prompt_type = "open-ended written questions"
-        options_format = "Create open-ended written questions that require a descriptive answer."
+        options_format = "Create open-ended written questions that require a descriptive answer and provide a model answer."
 
     prompt_template = f"""
             You are an AI assistant tasked with generating {num_questions} {prompt_type} related to presented study material grammar and comprehension from the given context. Do not get out of the context.
