@@ -3,7 +3,7 @@ google-generativeai
 pandas
 numpy
 PyPDF2
-langchain
+langchain==0.0.208
 python-dotenv
 langdetect
-pydantic==1.10.2
+pydantic
