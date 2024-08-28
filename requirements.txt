@@ -6,4 +6,4 @@ PyPDF2
 langchain
 python-dotenv
 langdetect
-pydantic
+pydantic==1.10.2
