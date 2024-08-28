@@ -56,11 +56,18 @@ def initialize_database():
 conn, cursor = initialize_database()
 
 # Function to insert data into the database
-def save_new_question(lesson_name, question, question_type, options, correct_answer):
-    cursor.execute(
-        "INSERT INTO questions (lesson_name, question, question_type, options, correct_answer) VALUES (?, ?, ?, ?, ?)",
-        (lesson_name, question, question_type, options, correct_answer)
-    )
+def save_new_question(lesson_name, questions, question_type, context, correct_answer):
+    for question in questions:
+        options = json.dumps(question.get('options', []), ensure_ascii=False)
+        question_text = question.get('question', '')
+        correct_answer = question.get('correct_answer', None)
+        try:
+            cursor.execute(
+                "INSERT INTO questions (lesson_name, question, question_type, options, correct_answer) VALUES (?, ?, ?, ?, ?)",
+                (lesson_name, question_text, question_type, options, correct_answer)
+            )
+        except sqlite3.IntegrityError:
+            continue
     conn.commit()
 
 # Function to query data from the database
@@ -179,62 +186,60 @@ def generate_questions(context, num_questions, question_type):
 # Path to the folder containing PDF files
 DATA_FOLDER_PATH = "./Data"
 
-# Streamlit app UI
-st.title("Question Generation and Management App")
-
-# Automatically process all files in the Data folder
+# Step 1: File Selection
+st.title("Step 1: Select PDF Files to Process")
 files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
-st.write(f"Processing {len(files)} files found in the folder '{DATA_FOLDER_PATH}'.")
+selected_files = st.multiselect("Select files to process", files)
 
-# Set up a dictionary to hold percentages for each lesson and question type
-lesson_percentage_distribution = {}
+if selected_files:
+    # Step 2: Set Options for Selected Files
+    st.title("Step 2: Set Options for Selected Files")
+    lesson_percentage_distribution = {}
 
-# Loop through each file and let the user set percentages for each question type
-for file in files:
-    st.subheader(f"Set percentages for {file}")
-    lesson_name = os.path.splitext(file)[0]
-    lesson_percentage_distribution[lesson_name] = {}
-    
-    for question_type in ["MCQ", "TF", "WRITTEN"]:
-        lesson_percentage_distribution[lesson_name][question_type] = st.slider(
-            f"Percentage for {question_type} in {file}",
-            0, 100, 33
-        )
+    for file in selected_files:
+        st.subheader(f"Set percentages for {file}")
+        lesson_name = os.path.splitext(file)[0]
+        lesson_percentage_distribution[lesson_name] = {}
 
-# Number of questions
-num_questions = st.number_input("Enter the total number of questions per lesson", min_value=1, max_value=100, value=10)
+        for question_type in ["MCQ", "TF", "WRITTEN"]:
+            lesson_percentage_distribution[lesson_name][question_type] = st.slider(
+                f"Percentage for {question_type} in {file}",
+                0, 100, 33
+            )
 
-# Button to generate questions
-if st.button("Generate Questions"):
-    if not any(lesson_percentage_distribution.values()):
-        st.error("Please set at least one percentage distribution for each lesson.")
-    else:
-        results = {}
-        for pdf_filename in files:
-            lesson_name = os.path.splitext(pdf_filename)[0]
-            pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
-            
-            try:
-                with open(pdf_path, "rb") as pdf_file:
-                    pdf_content = io.BytesIO(pdf_file.read())
-                    text_chunks = get_all_pdfs_chunks([pdf_content])
-                    context = " ".join(random.sample(text_chunks, min(num_questions, len(text_chunks))))
-                    
-                    for question_type, percentage in lesson_percentage_distribution[lesson_name].items():
-                        num_type_questions = int((percentage / 100) * num_questions)
-                        if num_type_questions > 0:
-                            generated_questions = generate_questions(context, num_type_questions, question_type)
-                            
-                            if generated_questions:
-                                save_new_question(lesson_name, generated_questions, question_type, context, "")
-                                results.setdefault(pdf_filename, []).extend(generated_questions)
-                            else:
-                                st.error(f"Failed to generate {question_type} questions for {pdf_filename}.")
-            except FileNotFoundError:
-                st.error(f"File {pdf_filename} not found in the folder '{DATA_FOLDER_PATH}'.")
+    num_questions = st.number_input("Enter the total number of questions per lesson", min_value=1, max_value=100, value=10)
 
-        st.success("Questions generated successfully.")
-        st.write(results)
+    # Step 3: Generate Questions
+    if st.button("Generate Questions"):
+        if not any(lesson_percentage_distribution.values()):
+            st.error("Please set at least one percentage distribution for each lesson.")
+        else:
+            results = {}
+            for pdf_filename in selected_files:
+                lesson_name = os.path.splitext(pdf_filename)[0]
+                pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
+
+                try:
+                    with open(pdf_path, "rb") as pdf_file:
+                        pdf_content = io.BytesIO(pdf_file.read())
+                        text_chunks = get_all_pdfs_chunks([pdf_content])
+                        context = " ".join(random.sample(text_chunks, min(num_questions, len(text_chunks))))
+
+                        for question_type, percentage in lesson_percentage_distribution[lesson_name].items():
+                            num_type_questions = int((percentage / 100) * num_questions)
+                            if num_type_questions > 0:
+                                generated_questions = generate_questions(context, num_type_questions, question_type)
+
+                                if generated_questions:
+                                    save_new_question(lesson_name, generated_questions, question_type, context, "")
+                                    results.setdefault(pdf_filename, []).extend(generated_questions)
+                                else:
+                                    st.error(f"Failed to generate {question_type} questions for {pdf_filename}.")
+                except FileNotFoundError:
+                    st.error(f"File {pdf_filename} not found in the folder '{DATA_FOLDER_PATH}'.")
+
+            st.success("Questions generated successfully.")
+            st.write(results)
 
 # Display the questions in the database
 st.subheader("Current Questions in the Database")
@@ -246,7 +251,7 @@ if not questions_df.empty:
     st.subheader("Rate Questions")
     question_id = st.selectbox("Select Question ID to Rate", questions_df['ID'])
     rating = st.radio("Rating", ["Good", "Bad"])
-    
+
     if st.button("Submit Rating"):
         rate_question(question_id, rating)
         st.success("Rating submitted successfully!")
