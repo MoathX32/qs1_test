@@ -134,12 +134,19 @@ def get_single_pdf_chunks(pdf, text_splitter):
 # Function to clean and parse JSON responses from the model
 def clean_json_response(response_text):
     try:
+        # First, try to load the response as is
         response_json = json.loads(response_text)
         return response_json
     except json.JSONDecodeError:
         try:
+            # Attempt to clean the response by removing common formatting errors
             cleaned_text = re.sub(r'```json', '', response_text).strip()
             cleaned_text = re.sub(r'```', '', cleaned_text).strip()
+
+            # Fix common JSON formatting issues like missing commas
+            cleaned_text = re.sub(r'(\S)\s*("\S)', r'\1,\2', cleaned_text)
+
+            # Try to find the JSON object or array in the cleaned text
             match = re.search(r'(\{.*\}|\[.*\])', cleaned_text, re.DOTALL)
             if match:
                 cleaned_text = match.group(0)
@@ -151,7 +158,6 @@ def clean_json_response(response_text):
         except (ValueError, json.JSONDecodeError) as e:
             logging.error(f"Response is not a valid JSON: {str(e)}")
             return None
-
 # Function to generate a common prompt template
 def get_prompt_template(context, num_questions, question_type):
     if question_type == "MCQ":
