@@ -9,10 +9,10 @@ import re
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langdetect import detect
 import google.generativeai as genai
 import pandas as pd
 
+# Initialize text splitter
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=2500,
     chunk_overlap=500
@@ -24,6 +24,16 @@ logging.basicConfig(level=logging.DEBUG)
 # Load environment variables and configure the model
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+# Set up the model configuration
+generation_config = {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 50,
+    "max_output_tokens": 8000,
+}
+system_instruction = "You are a helpful document answering assistant. You care about user and user experience. You always make sure to fulfill user requests."
+model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest", generation_config=generation_config, system_instruction=system_instruction)
 
 # Initialize the databases
 def initialize_database():
@@ -119,14 +129,14 @@ def clean_json_response(response_text):
             return None
 
 # Function to generate a common prompt template
-def get_prompt_template(context, num_questions, question_type, is_english):
+def get_prompt_template(context, num_questions, question_type):
     if question_type == "MCQ":
         prompt_type = "multiple-choice questions (MCQs)"
         options_format = "Create a set of MCQs with 4 answer options each and provide the correct answer."
 
     elif question_type == "TF":
         prompt_type = "true/false questions"
-        options_format = "Create a set of True/False questions. No options is needed, but the correct answer is needed."
+        options_format = "Create a set of True/False questions. No options are needed, but the correct answer is needed."
         
     elif question_type == "WRITTEN":
         prompt_type = "open-ended written questions"
@@ -151,20 +161,10 @@ def get_prompt_template(context, num_questions, question_type, is_english):
 
 # Function to generate questions using the model
 def generate_questions(context, num_questions, question_type):
-    # Detect the language of the context
-    language = detect(context[:500])
-    logging.debug(f"Detected language: {language}")
-
-    # Check if the detected language is supported
-    supported_languages = ['en']  # Assuming 'en' (English) is supported
-    if language not in supported_languages:
-        logging.error(f"Error: The requested language '{language}' is not supported by models/text-bison-001")
-        return None
-
-    prompt = get_prompt_template(context, num_questions, question_type, language == 'en')
+    prompt = get_prompt_template(context, num_questions, question_type)
     try:
-        response = genai.generate_text(prompt=prompt)
-        response_text = response['candidates'][0]['output'].strip()
+        response = model.start_chat(history=[]).send_message(prompt)
+        response_text = response.text.strip()
         logging.debug(f"Raw response from model: {response_text}")
 
         if response_text:
