@@ -135,35 +135,22 @@ def get_single_pdf_chunks(pdf, text_splitter):
 
 def clean_json_response(response_text):
     try:
-        # Log the raw response for debugging
-        logging.debug(f"Raw response: {response_text}")
-
-        # Attempt to load the response as is
         response_json = json.loads(response_text)
         return response_json
-    except json.JSONDecodeError as e:
-        logging.error(f"Initial JSON decode error: {str(e)}")
+    except json.JSONDecodeError:
         try:
-            # Attempt to clean the response by removing common formatting errors
             cleaned_text = re.sub(r'```json', '', response_text).strip()
             cleaned_text = re.sub(r'```', '', cleaned_text).strip()
-
-            # Fix common JSON formatting issues like missing commas or quotes
-            cleaned_text = re.sub(r'(\S)\s*("\S)', r'\1,\2', cleaned_text)
-            cleaned_text = re.sub(r"(?<=: )'([^']*)'", r'"\1"', cleaned_text)  # Convert single quotes to double quotes
-            cleaned_text = re.sub(r"'(\w+)':", r'"\1":', cleaned_text)  # Convert single-quoted keys to double-quoted keys
-
-            # Try to find the JSON object or array in the cleaned text
             match = re.search(r'(\{.*\}|\[.*\])', cleaned_text, re.DOTALL)
             if match:
                 cleaned_text = match.group(0)
                 response_json = json.loads(cleaned_text)
                 return response_json
             else:
-                logging.error("No JSON object or array found in response after cleaning")
+                logging.error("No JSON object or array found in response")
                 return None
         except (ValueError, json.JSONDecodeError) as e:
-            logging.error(f"Response is not a valid JSON after cleaning: {str(e)}")
+            logging.error(f"Response is not a valid JSON: {str(e)}")
             return None
 
 
