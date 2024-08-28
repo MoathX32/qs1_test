@@ -47,7 +47,7 @@ def initialize_database():
             question_type TEXT,
             options TEXT,
             correct_answer TEXT,
-            rating TEXT DEFAULT 'Unrated'
+            rating TEXT DEFAULT 'Good'
         )
     ''')
     conn.commit()
@@ -56,7 +56,7 @@ def initialize_database():
 conn, cursor = initialize_database()
 
 # Function to insert data into the database
-def save_new_question(lesson_name, questions, question_type, context, correct_answer):
+def save_new_question(lesson_name, questions, question_type):
     logging.debug(f"Type of questions: {type(questions)} | Content: {questions}")
     
     if isinstance(questions, dict):
@@ -210,77 +210,81 @@ def generate_questions(context, num_questions, question_type):
 # Path to the folder containing PDF files
 DATA_FOLDER_PATH = "./Data"
 
-# Step 1: File Selection
-st.title("Step 1: Select PDF Files to Process")
-files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
-selected_files = st.multiselect("Select files to process", files)
+# Sidebar for controls
+with st.sidebar:
+    st.title("Controls")
+    
+    # Step 1: File Selection
+    st.subheader("Step 1: Select PDF Files to Process")
+    files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
+    selected_files = st.multiselect("Select files to process", files)
 
-if selected_files:
-    # Step 2: Set Numbers for Selected Files
-    st.title("Step 2: Set Numbers for Selected Files")
-    lesson_question_count = {}
+    if selected_files:
+        # Step 2: Set Numbers for Selected Files
+        st.subheader("Step 2: Set Numbers for Selected Files")
+        lesson_question_count = {}
 
-    for file in selected_files:
-        st.subheader(f"Set numbers for {file}")
-        lesson_name = os.path.splitext(file)[0]
-        lesson_question_count[lesson_name] = {}
+        for file in selected_files:
+            lesson_name = os.path.splitext(file)[0]
+            lesson_question_count[lesson_name] = {}
 
-        for question_type in ["MCQ", "TF", "WRITTEN"]:
-            lesson_question_count[lesson_name][question_type] = st.number_input(
-                f"Number of {question_type} questions for {file}",
-                min_value=0, max_value=10, value=5  # Testing with a small number first
-            )
+            for question_type in ["MCQ", "TF", "WRITTEN"]:
+                lesson_question_count[lesson_name][question_type] = st.number_input(
+                    f"Number of {question_type} questions for {file}",
+                    min_value=0, max_value=10, value=5  # Testing with a small number first
+                )
 
-    # Step 3: Generate Questions
-    if st.button("Generate Questions"):
-        if not any(lesson_question_count.values()):
-            st.error("Please set at least one number of questions for each lesson.")
-        else:
-            results = {}
-            for pdf_filename in selected_files:
-                lesson_name = os.path.splitext(pdf_filename)[0]
-                pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
+        # Step 3: Generate Questions
+        if st.button("Generate Questions"):
+            if not any(lesson_question_count.values()):
+                st.error("Please set at least one number of questions for each lesson.")
+            else:
+                results = {}
+                for pdf_filename in selected_files:
+                    lesson_name = os.path.splitext(pdf_filename)[0]
+                    pdf_path = os.path.join(DATA_FOLDER_PATH, pdf_filename)
 
-                try:
-                    with open(pdf_path, "rb") as pdf_file:
-                        pdf_content = io.BytesIO(pdf_file.read())
-                        text_chunks = get_all_pdfs_chunks([pdf_content])
-                        context = " ".join(random.sample(text_chunks, len(text_chunks)))
+                    try:
+                        with open(pdf_path, "rb") as pdf_file:
+                            pdf_content = io.BytesIO(pdf_file.read())
+                            text_chunks = get_all_pdfs_chunks([pdf_content])
+                            context = " ".join(random.sample(text_chunks, len(text_chunks)))
 
-                        for question_type, num_questions in lesson_question_count[lesson_name].items():
-                            if num_questions > 0:
-                                generated_questions = generate_questions(context, num_questions, question_type)
+                            for question_type, num_questions in lesson_question_count[lesson_name].items():
+                                if num_questions > 0:
+                                    generated_questions = generate_questions(context, num_questions, question_type)
 
-                                if generated_questions:
-                                    save_new_question(lesson_name, generated_questions, question_type, context, "")
-                                    results.setdefault(pdf_filename, []).extend(generated_questions)
-                                else:
-                                    st.error(f"Failed to generate {question_type} questions for {pdf_filename}.")
-                except FileNotFoundError:
-                    st.error(f"File {pdf_filename} not found in the folder '{DATA_FOLDER_PATH}'.")
+                                    if generated_questions:
+                                        save_new_question(lesson_name, generated_questions, question_type, context, "")
+                                        results.setdefault(pdf_filename, []).extend(generated_questions)
+                                    else:
+                                        st.error(f"Failed to generate {question_type} questions for {pdf_filename}.")
+                    except FileNotFoundError:
+                        st.error(f"File {pdf_filename} not found in the folder '{DATA_FOLDER_PATH}'.")
 
-            st.success("Questions generated successfully.")
-            st.write(results)
+                st.success("Questions generated successfully.")
+                st.write(results)
 
-# Display the questions in the database
-st.subheader("Current Questions in the Database")
-questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])
-st.dataframe(questions_df)
-
-# Rate the questions
-if not questions_df.empty:
-    st.subheader("Rate Questions")
-    question_id = st.selectbox("Select Question ID to Rate", questions_df['ID'])
-    rating = st.radio("Rating", ["Good", "Bad"])
-
-    if st.button("Submit Rating"):
-        rate_question(question_id, rating)
-        st.success("Rating submitted successfully!")
-        questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])  # Refresh the data
+    # Option to view and rate questions
+    if st.checkbox("Show Questions Database"):
+        st.subheader("Current Questions in the Database")
+        questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])
         st.dataframe(questions_df)
 
-# Download the database
-download_database()
+        if not questions_df.empty:
+            st.subheader("Rate Questions")
+            question_id = st.selectbox("Select Question ID to Rate", questions_df['ID'])
+            rating = st.radio("Rating", ["Good", "Bad"])
+
+            if st.button("Submit Rating"):
+                rate_question(question_id, rating)
+                st.success("Rating submitted successfully!")
+                questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])  # Refresh the data
+                st.dataframe(questions_df)
+
+    # Option to download the database
+    st.subheader("Download Database")
+    download_database()
 
 # Close the database connection at the end
 conn.close()
