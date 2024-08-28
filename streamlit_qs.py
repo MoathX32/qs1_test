@@ -139,15 +139,18 @@ def clean_json_response(response_text):
 def get_prompt_template(context, num_questions, question_type):
     if question_type == "MCQ":
         prompt_type = "multiple-choice questions (MCQs)"
-        options_format = "Create a set of MCQs with 4 answer options each and provide the correct answer."
+        options_format = (
+            "Create a set of MCQs with 4 distinct answer options each. "
+            "Clearly label the correct answer."
+        )
 
     elif question_type == "TF":
         prompt_type = "true/false questions"
-        options_format = "Create a set of True/False questions. No options are needed, but the correct answer is needed."
+        options_format = "Create a set of True/False questions. Clearly label the correct answer."
         
     elif question_type == "WRITTEN":
         prompt_type = "open-ended written questions"
-        options_format = "Create open-ended written questions that require a descriptive answer. No options are needed, but the correct answer is needed."
+        options_format = "Create open-ended written questions that require a descriptive answer."
 
     prompt_template = f"""
             You are an AI assistant tasked with generating {num_questions} {prompt_type} related to presented study material grammar and comprehension from the given context. Do not get out of the context.
@@ -169,18 +172,20 @@ def get_prompt_template(context, num_questions, question_type):
 # Function to generate questions using the model
 def generate_questions(context, num_questions, question_type):
     prompt = get_prompt_template(context, num_questions, question_type)
+    logging.debug(f"Generated Prompt for {question_type}:\n{prompt}")
+    
     try:
         response = model.start_chat(history=[]).send_message(prompt)
         response_text = response.text.strip()
-        logging.debug(f"Raw response from model: {response_text}")
+        logging.debug(f"Raw response from model for {question_type}:\n{response_text}")
 
         if response_text:
             return clean_json_response(response_text)
         else:
-            logging.error("Empty response from the model")
+            logging.error(f"Empty response from the model for {question_type}")
             return None
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
+        logging.error(f"Error generating {question_type} questions: {str(e)}")
         return None
 
 # Path to the folder containing PDF files
@@ -192,8 +197,8 @@ files = [f for f in os.listdir(DATA_FOLDER_PATH) if f.endswith('.pdf')]
 selected_files = st.multiselect("Select files to process", files)
 
 if selected_files:
-    # Step 2: Set Options for Selected Files
-    st.title("Step 2: Set Options for Selected Files")
+    # Step 2: Set Numbers for Selected Files
+    st.title("Step 2: Set Numbers for Selected Files")
     lesson_question_count = {}
 
     for file in selected_files:
