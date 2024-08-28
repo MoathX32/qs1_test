@@ -15,6 +15,12 @@ from langdetect import detect
 import google.generativeai as genai
 import pandas as pd
 
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=2500,
+    chunk_overlap=500
+)
+
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
