@@ -14,17 +14,6 @@ import google.generativeai as genai
 import pandas as pd
 
 from pydantic import BaseModel, model_validator
-
-class ExampleModel(BaseModel):
-    field1: str
-    field2: int
-
-    @model_validator
-    def check_fields(cls, values):
-        if values['field2'] < 0:
-            raise ValueError('field2 must be non-negative')
-        return values
-
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
