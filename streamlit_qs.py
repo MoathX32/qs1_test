@@ -264,12 +264,12 @@ with st.sidebar:
                         st.error(f"File {pdf_filename} not found in the folder '{DATA_FOLDER_PATH}'.")
 
                 st.success("Questions generated successfully.")
-                st.write(results)
+                st.session_state['results'] = results
 
-# Show the generated questions
-if 'results' in locals() and results:
+# Show the generated questions on the main page
+if 'results' in st.session_state and st.session_state['results']:
     st.subheader("Generated Questions")
-    st.json(results)
+    st.json(st.session_state['results'])
 
 # Option to view and rate questions in the database
 if st.checkbox("Show Questions Database"):
