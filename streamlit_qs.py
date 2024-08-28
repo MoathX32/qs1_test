@@ -80,7 +80,7 @@ def save_new_question(lesson_name, questions, question_type):
         correct_answer = question.get('correct_answer', None) or "Not Provided"
         try:
             cursor.execute(
-                "INSERT INTO questions (lesson_name, question, question_type, options, correct_answer) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO questions (lesson_name, question, question_type, options, correct_answer, rating) VALUES (?, ?, ?, ?, ?, 'Good')",
                 (lesson_name, question_text, question_type, options, correct_answer)
             )
         except sqlite3.IntegrityError:
