@@ -153,7 +153,6 @@ def clean_json_response(response_text):
             logging.error(f"Response is not a valid JSON: {str(e)}")
             return None
 
-
 # Function to generate a common prompt template
 def get_prompt_template(context, num_questions, question_type):
     if question_type == "MCQ":
