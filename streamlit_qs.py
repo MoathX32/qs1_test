@@ -59,15 +59,20 @@ conn, cursor = initialize_database()
 def save_new_question(lesson_name, questions, question_type, context, correct_answer):
     # Debugging: Check the type of questions
     logging.debug(f"Type of questions: {type(questions)} | Content: {questions}")
-    
-    if isinstance(questions, str):
+
+    if isinstance(questions, dict):
+        # Convert a single dictionary into a list of one dictionary
+        questions = [questions]
+    elif isinstance(questions, str):
         try:
             # Attempt to parse the string as JSON
             questions = json.loads(questions)
+            if isinstance(questions, dict):
+                questions = [questions]
         except json.JSONDecodeError:
             logging.error("Failed to decode questions from JSON")
             return
-    
+
     if not isinstance(questions, list):
         logging.error("Expected a list of questions, but got something else.")
         return
@@ -84,6 +89,7 @@ def save_new_question(lesson_name, questions, question_type, context, correct_an
         except sqlite3.IntegrityError:
             continue
     conn.commit()
+
 
 
 # Function to query data from the database
