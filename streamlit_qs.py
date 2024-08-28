@@ -208,6 +208,9 @@ def generate_questions(context, num_questions, question_type):
 # Path to the folder containing PDF files
 DATA_FOLDER_PATH = "./Data"
 
+# Main Page Layout
+st.title("Question Generation and Management App")
+
 # Sidebar for controls
 with st.sidebar:
     st.title("Controls")
@@ -263,26 +266,31 @@ with st.sidebar:
                 st.success("Questions generated successfully.")
                 st.write(results)
 
-    # Option to view and rate questions
-    if st.checkbox("Show Questions Database"):
-        st.subheader("Current Questions in the Database")
-        questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])
-        st.dataframe(questions_df)
+# Show the generated questions
+if 'results' in locals() and results:
+    st.subheader("Generated Questions")
+    st.json(results)
 
-        if not questions_df.empty:
-            st.subheader("Rate Questions")
-            question_id = st.selectbox("Select Question ID to Rate", questions_df['ID'])
-            rating = st.radio("Rating", ["Good", "Bad"])
+# Option to view and rate questions in the database
+if st.checkbox("Show Questions Database"):
+    st.subheader("Current Questions in the Database")
+    questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])
+    st.dataframe(questions_df)
 
-            if st.button("Submit Rating"):
-                rate_question(question_id, rating)
-                st.success("Rating submitted successfully!")
-                questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])  # Refresh the data
-                st.dataframe(questions_df)
+    if not questions_df.empty:
+        st.subheader("Rate Questions")
+        question_id = st.selectbox("Select Question ID to Rate", questions_df['ID'])
+        rating = st.radio("Rating", ["Good", "Bad"])
 
-    # Option to download the database
-    st.subheader("Download Database")
-    download_database()
+        if st.button("Submit Rating"):
+            rate_question(question_id, rating)
+            st.success("Rating submitted successfully!")
+            questions_df = pd.DataFrame(get_questions(), columns=['ID', 'Lesson Name', 'Question', 'Question Type', 'Options', 'Correct Answer', 'Rating'])  # Refresh the data
+            st.dataframe(questions_df)
+
+# Option to download the database
+st.subheader("Download Database")
+download_database()
 
 # Close the database connection at the end
 conn.close()
