@@ -60,11 +60,9 @@ def save_new_question(lesson_name, questions, question_type):
     logging.debug(f"Type of questions: {type(questions)} | Content: {questions}")
     
     if isinstance(questions, dict):
-        # Convert a single dictionary into a list of one dictionary
         questions = [questions]
     elif isinstance(questions, str):
         try:
-            # Attempt to parse the string as JSON
             questions = json.loads(questions)
             if isinstance(questions, dict):
                 questions = [questions]
@@ -255,7 +253,7 @@ with st.sidebar:
                                     generated_questions = generate_questions(context, num_questions, question_type)
 
                                     if generated_questions:
-                                        save_new_question(lesson_name, generated_questions, question_type, context, "")
+                                        save_new_question(lesson_name, generated_questions, question_type)
                                         results.setdefault(pdf_filename, []).extend(generated_questions)
                                     else:
                                         st.error(f"Failed to generate {question_type} questions for {pdf_filename}.")
