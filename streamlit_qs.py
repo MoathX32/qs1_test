@@ -9,7 +9,6 @@ import re
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from langdetect import detect
 import google.generativeai as genai
