@@ -16,7 +16,6 @@ from langdetect import detect
 import google.generativeai as genai
 import pandas as pd
 
-from pydantic import BaseModel, model_validator
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
