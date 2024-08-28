@@ -75,18 +75,8 @@ def download_database():
         )
 
 # Function to extract and chunk PDF text
-def get_single_pdf_chunks(pdf, text_splitter):
-    pdf_reader = PdfReader(pdf)
-    pdf_chunks = []
-    for page in pdf_reader.pages:
-        page_text = page.extract_text()
-        page_chunks = text_splitter.split_text(page_text)
-        pdf_chunks.extend(page_chunks)
-    return pdf_chunks
-
-# Function to get chunks from multiple PDFs
 def get_all_pdfs_chunks(pdf_docs):
-    text_splitter = RecursiveCharacterTextSplitter(
+    text_splitter = CharacterTextSplitter(
         chunk_size=2500,
         chunk_overlap=500
     )
@@ -99,6 +89,16 @@ def get_all_pdfs_chunks(pdf_docs):
     random.shuffle(all_chunks)
     
     return all_chunks
+
+# Function to extract and chunk PDF text
+def get_single_pdf_chunks(pdf, text_splitter):
+    pdf_reader = PdfReader(pdf)
+    pdf_chunks = []
+    for page in pdf_reader.pages:
+        page_text = page.extract_text()
+        page_chunks = text_splitter.split_text(page_text)
+        pdf_chunks.extend(page_chunks)
+    return pdf_chunks
 
 # Function to clean and parse JSON responses from the model
 def clean_json_response(response_text):
