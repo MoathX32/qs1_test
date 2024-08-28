@@ -1,7 +1,8 @@
 streamlit
-pandas
-langdetect
-PyPDF2
 google-generativeai
-python-dotenv
+pandas
+numpy
+PyPDF2
 langchain
+python-dotenv
+langdetect
