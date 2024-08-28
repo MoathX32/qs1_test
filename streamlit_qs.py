@@ -194,25 +194,23 @@ selected_files = st.multiselect("Select files to process", files)
 if selected_files:
     # Step 2: Set Options for Selected Files
     st.title("Step 2: Set Options for Selected Files")
-    lesson_percentage_distribution = {}
+    lesson_question_count = {}
 
     for file in selected_files:
-        st.subheader(f"Set percentages for {file}")
+        st.subheader(f"Set numbers for {file}")
         lesson_name = os.path.splitext(file)[0]
-        lesson_percentage_distribution[lesson_name] = {}
+        lesson_question_count[lesson_name] = {}
 
         for question_type in ["MCQ", "TF", "WRITTEN"]:
-            lesson_percentage_distribution[lesson_name][question_type] = st.slider(
-                f"Percentage for {question_type} in {file}",
-                0, 100, 33
+            lesson_question_count[lesson_name][question_type] = st.number_input(
+                f"Number of {question_type} questions for {file}",
+                min_value=0, max_value=100, value=10
             )
-
-    num_questions = st.number_input("Enter the total number of questions per lesson", min_value=1, max_value=100, value=10)
 
     # Step 3: Generate Questions
     if st.button("Generate Questions"):
-        if not any(lesson_percentage_distribution.values()):
-            st.error("Please set at least one percentage distribution for each lesson.")
+        if not any(lesson_question_count.values()):
+            st.error("Please set at least one number of questions for each lesson.")
         else:
             results = {}
             for pdf_filename in selected_files:
@@ -223,12 +221,11 @@ if selected_files:
                     with open(pdf_path, "rb") as pdf_file:
                         pdf_content = io.BytesIO(pdf_file.read())
                         text_chunks = get_all_pdfs_chunks([pdf_content])
-                        context = " ".join(random.sample(text_chunks, min(num_questions, len(text_chunks))))
+                        context = " ".join(random.sample(text_chunks, len(text_chunks)))
 
-                        for question_type, percentage in lesson_percentage_distribution[lesson_name].items():
-                            num_type_questions = int((percentage / 100) * num_questions)
-                            if num_type_questions > 0:
-                                generated_questions = generate_questions(context, num_type_questions, question_type)
+                        for question_type, num_questions in lesson_question_count[lesson_name].items():
+                            if num_questions > 0:
+                                generated_questions = generate_questions(context, num_questions, question_type)
 
                                 if generated_questions:
                                     save_new_question(lesson_name, generated_questions, question_type, context, "")
