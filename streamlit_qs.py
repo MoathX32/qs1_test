@@ -171,18 +171,15 @@ def get_prompt_template(context, num_questions, question_type):
         options_format = "Create open-ended written questions that require a descriptive answer and provide a model answer."
 
     prompt_template = f"""
-            You are an AI assistant tasked with generating {num_questions} {prompt_type} related to presented study material grammar and comprehension from the given context. Do not get out of the context.
-            Ensure the following guidelines while generating the questions:
-            1. Vary the types of questions between open and closed, and between direct and reflective questions to ensure a comprehensive assessment.
-            2. Focus on deep understanding by asking questions that measure the students' grasp of key concepts, requiring explanations or examples where appropriate.
-            3. Relate questions to real-life scenarios to help students see the broader relevance of the material.
-            4. Encourage critical thinking by including questions that ask 'why' or explore potential consequences.
-            5. Include questions of varying difficulty levels to accommodate students with different abilities, ensuring some questions are answerable by all.
-            6. Ensure clarity in the wording of questions to avoid ambiguity and confusion.
-            7. The language of the question must be the same as the language of the content presented in the lessons, whether in MCQs, true/false, or written questions.
-            Ensure the output is in JSON format with fields 'question', 'options', and 'correct_answer'.
-            {options_format}
-            Context: {context}\n
+                    You are an AI assistant generating {num_questions} {prompt_type} related to the given study material. Follow these guidelines:
+                    Vary question types (open/closed, direct/reflective) for a comprehensive assessment.
+                    Focus on deep understanding by asking questions that measure key concepts and require explanations or examples.
+                    Relate questions to real-life scenarios to show broader relevance.
+                    Encourage critical thinking with questions that ask "why" or explore consequences.
+                    Include questions of varying difficulty to accommodate all students.
+                    Ensure clarity to avoid ambiguity and confusion.
+                    Match the question language with the content language.
+                    The output should be in JSON format with fields question, options, and correct_answer. For {question_type}, {options_format}. The context is: {context}.
             """
     
     return prompt_template
