@@ -171,20 +171,18 @@ def get_prompt_template(context, num_questions, question_type):
         options_format = "Create open-ended written questions that require a descriptive answer and provide a model answer."
 
     prompt_template = f"""
-            You are an AI assistant generating {num_questions} {prompt_type} related to the given study material. Follow these guidelines:
-            
-            Vary question types (open/closed, direct/reflective) for a comprehensive assessment.
-            Focus on deep understanding by asking questions that measure key concepts and require explanations or examples.
-            Relate questions to real-life scenarios to show broader relevance.
-            Encourage critical thinking with questions that ask "why" or explore consequences.
-            Include questions of varying difficulty to accommodate all students.
-            Ensure clarity to avoid ambiguity and confusion.
-            Match the question language with the content language.
-            Ensure the output is in JSON format with fields question, options, and correct_answer. For {question_type}, {options_format}. The context is: {context}.
-            
-            You must generate the exact number of ordered questions. If some conditions make it difficult, generate them within the guidelines to the best extent possible.
-
-
+                You are an AI assistant generating {num_questions} {prompt_type} related to the given study material. Follow these guidelines:
+                
+                Vary question types (open/closed, direct/reflective) for a comprehensive assessment.
+                Focus on deep understanding by asking questions that measure key concepts and require explanations or examples.
+                Relate questions to real-life scenarios to show broader relevance.
+                Encourage critical thinking with questions that ask "why" or explore consequences.
+                Include questions of varying difficulty to accommodate all students.
+                Ensure clarity in the wording of questions to avoid ambiguity and confusion.
+                The language of the questions must be Arabic, matching the language of the content.
+                Ensure the output is in JSON format with fields 'question', 'options', and 'correct_answer'. For {question_type}, {options_format}. The context is: {context}.
+                
+                You must generate the exact number of ordered questions. If some conditions make it difficult, generate them within the guidelines to the best extent possible.
             """
     
     return prompt_template
